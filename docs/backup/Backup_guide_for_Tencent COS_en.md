@@ -15,7 +15,7 @@
 
 
 
-![kstone-associate](../images\images_for_backup_cos\kstone-associate.png)
+![kstone-associate](../images\'images_for_backup_cos'\kstone-associate.png)
 
 ### Step 2: Associate etcd cluster with kstone:
 
