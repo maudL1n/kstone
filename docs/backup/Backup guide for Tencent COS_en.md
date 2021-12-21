@@ -13,7 +13,7 @@
 
 ### Step 1: Access kstone-dashboard UI and Click "关联集群":
 
-![kstone-associate](..\images\images_for_backup_cos\kstone-associate.png)
+![kstone-associate](docs\images\images_for_backup_cos\kstone-associate.png)
 
 ### Step 2: Associate etcd cluster with kstone:
 
