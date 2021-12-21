@@ -15,7 +15,7 @@
 
 
 
-![kstone-associate](../images\'images_for_backup_cos'\kstone-associate.png)
+![kstone-associate](../images/images_for_backup_cos/kstone-associate.png)
 
 ### Step 2: Associate etcd cluster with kstone:
 
@@ -23,7 +23,7 @@ in this document we will use kubeadm managed etcd cluster
 
 fill the content and click "提交"
 
-![kstone-associate](../images\images_for_backup_cos\kstone-associate2.png)
+![kstone-associate](../images/images_for_backup_cos/kstone-associate2.png)
 
 ![kstone-associate](../images\images_for_backup_cos\kstone-associate3.png)
 
