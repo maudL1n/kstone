@@ -13,7 +13,9 @@
 
 ### Step 1: Access kstone-dashboard UI and Click "关联集群":
 
-![kstone-associate](docs\images\images_for_backup_cos\kstone-associate.png)
+
+
+![kstone-associate](../images\images_for_backup_cos\kstone-associate.png)
 
 ### Step 2: Associate etcd cluster with kstone:
 
@@ -21,9 +23,9 @@ in this document we will use kubeadm managed etcd cluster
 
 fill the content and click "提交"
 
-![kstone-associate](..\images\images_for_backup_cos\kstone-associate2.png)
+![kstone-associate](../images\images_for_backup_cos\kstone-associate2.png)
 
-![kstone-associate](..\images\images_for_backup_cos\kstone-associate3.png)
+![kstone-associate](../images\images_for_backup_cos\kstone-associate3.png)
 
 集群名称: etcd cluster name，uniqueKey
 
