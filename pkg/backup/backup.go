@@ -40,6 +40,7 @@ import (
 
 	kstoneapiv1 "tkestack.io/kstone/pkg/apis/kstone/v1alpha1"
 	"tkestack.io/kstone/pkg/controllers/util"
+	util2 "tkestack.io/kstone/pkg/featureprovider/util"
 	platformscheme "tkestack.io/kstone/pkg/generated/clientset/versioned/scheme"
 )
 
@@ -133,13 +134,22 @@ func (bak *Server) CreateEtcdBackupByYaml(backup *backupapiv2.EtcdBackup) (*back
 	return bak.encodeBackupObj(retObj)
 }
 
-// GetEtcdBackup gets backup
+// GetEtcdBackup gets etcd backup
 func (bak *Server) GetEtcdBackup(name, namespace string) (*backupapiv2.EtcdBackup, error) {
 	obj, err := bak.cli.Resource(BackupSchema).Namespace(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 	return bak.encodeBackupObj(obj)
+}
+
+//DeleteEtcdBackup deletes etcd backup
+func (bak *Server) DeleteEtcdBackup(name, namespace string) error {
+	err := bak.cli.Resource(BackupSchema).Namespace(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // UpdateEtcdBackup updates etcd backup
@@ -211,6 +221,10 @@ func (bak *Server) parseBackupConfig(cluster *kstoneapiv1.EtcdCluster) (*Config,
 	return cfg, secretName, nil
 }
 
+func (bak *Server) isBackupEnabled(cluster *kstoneapiv1.EtcdCluster) bool {
+	return util2.IsFeatureGateEnabled(cluster.ObjectMeta.Annotations, string(kstoneapiv1.KStoneFeatureBackup))
+}
+
 // initEtcdBackup generates etcd backup
 func (bak *Server) initEtcdBackup(cluster *kstoneapiv1.EtcdCluster) (*backupapiv2.EtcdBackup, error) {
 	backupCfg, secretName, err := bak.parseBackupConfig(cluster)
@@ -243,6 +257,11 @@ func (bak *Server) initEtcdBackup(cluster *kstoneapiv1.EtcdCluster) (*backupapiv
 // Equal checks whether the backup resource needs to be updated
 func (bak *Server) Equal(cluster *kstoneapiv1.EtcdCluster) bool {
 	namespace, name := cluster.Namespace, cluster.Name
+	if !bak.isBackupEnabled(cluster) {
+		_, err := bak.GetEtcdBackup(name, namespace)
+		return err == nil
+	}
+
 	backup, err := bak.GetEtcdBackup(name, namespace)
 	if err != nil {
 		return k8serors.IsNotFound(err)
@@ -260,6 +279,13 @@ func (bak *Server) Equal(cluster *kstoneapiv1.EtcdCluster) bool {
 // SyncEtcdBackup synchronizes the latest backup configuration.
 func (bak *Server) SyncEtcdBackup(cluster *kstoneapiv1.EtcdCluster) error {
 	namespace, name := cluster.Namespace, cluster.Name
+	if !bak.isBackupEnabled(cluster) {
+		err := bak.DeleteEtcdBackup(name, namespace)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
 	newBackup, err := bak.initEtcdBackup(cluster)
 	if err != nil {
 		klog.Errorf("failed to init etcd backup, namespace is %s, name is %s, err is %v", namespace, name, err)

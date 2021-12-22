@@ -49,6 +49,15 @@ type RequestInfo struct {
 
 // AddRequestTask adds etcdinspection for request statistics
 func (c *Server) AddRequestTask(cluster *kstoneapiv1.EtcdCluster, cruiseType string) error {
+	if !c.IsInspectionTypeEnabled(cluster, cruiseType) {
+		name := cluster.Name + "-" + cruiseType
+		err := c.DeleteEtcdInspection(cluster.Namespace, name)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
 	task, err := c.initInspectionTask(cluster, cruiseType)
 	if err != nil {
 		return err

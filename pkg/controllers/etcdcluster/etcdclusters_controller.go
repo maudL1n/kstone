@@ -334,21 +334,11 @@ func (c *ClusterController) handleClusterFeature(cluster *kstonev1alpha1.EtcdClu
 		return cluster, nil
 	}
 
-	annotations := cluster.ObjectMeta.Annotations
-	if annotations == nil {
-		annotations = make(map[string]string)
-	}
-
 	if cluster.Status.FeatureGatesStatus == nil {
 		cluster.Status.FeatureGatesStatus = make(map[kstonev1alpha1.KStoneFeature]string)
 	}
 
 	for name := range featureprovider.EtcdFeatureProviders {
-		if !c.enabledFeatureGate(annotations, name) {
-			klog.V(4).Infof("feature %s is disabled,skip it,cluster is %s", name, cluster.Name)
-			continue
-		}
-
 		feature, err := c.GetFeatureProvider(name)
 		if err != nil {
 			klog.Errorf("failed to get feature %s provider, err is %v", name, err)

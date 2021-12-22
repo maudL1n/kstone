@@ -34,6 +34,7 @@ import (
 	kstoneapiv1 "tkestack.io/kstone/pkg/apis/kstone/v1alpha1"
 	"tkestack.io/kstone/pkg/controllers/util"
 	"tkestack.io/kstone/pkg/etcd"
+	util2 "tkestack.io/kstone/pkg/featureprovider/util"
 	clientset "tkestack.io/kstone/pkg/generated/clientset/versioned"
 	platformscheme "tkestack.io/kstone/pkg/generated/clientset/versioned/scheme"
 )
@@ -88,6 +89,22 @@ func (c *Server) GetEtcdInspection(namespace, name string) (*kstoneapiv1.EtcdIns
 	return inspectionTask, nil
 }
 
+// DeleteEtcdInspection deletes etcdinspection
+func (c *Server) DeleteEtcdInspection(namespace, name string) error {
+	err := c.cli.KstoneV1alpha1().EtcdInspections(namespace).
+		Delete(context.TODO(), name, metav1.DeleteOptions{})
+	if err != nil {
+		klog.Errorf(
+			"failed to delete etcdinspection, namespace is %s, name is %s, err is %v",
+			namespace,
+			name,
+			err,
+		)
+		return err
+	}
+	return nil
+}
+
 // CreateEtcdInspection creates etcdinspection
 func (c *Server) CreateEtcdInspection(inspection *kstoneapiv1.EtcdInspection) (*kstoneapiv1.EtcdInspection, error) {
 	newinspectionTask, err := c.cli.KstoneV1alpha1().EtcdInspections(inspection.Namespace).
@@ -133,9 +150,16 @@ func (c *Server) initInspectionTask(
 	return inspectionTask, nil
 }
 
+func (c *Server) IsInspectionTypeEnabled(cluster *kstoneapiv1.EtcdCluster, inspectionType string) bool {
+	return util2.IsFeatureGateEnabled(cluster.ObjectMeta.Annotations, inspectionType)
+}
+
 func (c *Server) IsNotFound(cluster *kstoneapiv1.EtcdCluster, inspectionType string) bool {
 	name := cluster.Name + "-" + inspectionType
 	_, err := c.GetEtcdInspection(cluster.Namespace, name)
+	if !c.IsInspectionTypeEnabled(cluster, inspectionType) {
+		return err == nil
+	}
 	if err != nil {
 		return apierrors.IsNotFound(err)
 	}

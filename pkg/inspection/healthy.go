@@ -28,6 +28,14 @@ import (
 
 // AddHealthyTask adds health check tasks.
 func (c *Server) AddHealthyTask(cluster *kstoneapiv1.EtcdCluster, cruiseType string) error {
+	if !c.IsInspectionTypeEnabled(cluster, cruiseType) {
+		name := cluster.Name + "-" + cruiseType
+		err := c.DeleteEtcdInspection(cluster.Namespace, name)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
 	task, err := c.initInspectionTask(cluster, cruiseType)
 	if err != nil {
 		return err

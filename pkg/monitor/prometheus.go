@@ -40,6 +40,7 @@ import (
 	kstonev1alpha1 "tkestack.io/kstone/pkg/apis/kstone/v1alpha1"
 	"tkestack.io/kstone/pkg/controllers/util"
 	"tkestack.io/kstone/pkg/etcd"
+	util2 "tkestack.io/kstone/pkg/featureprovider/util"
 	platformscheme "tkestack.io/kstone/pkg/generated/clientset/versioned/scheme"
 )
 
@@ -99,6 +100,15 @@ func (prom *PrometheusMonitor) UpdateEtcdService(service *corev1.Service) (*core
 		return nil, err
 	}
 	return svr, err
+}
+
+// DeleteEtcdService deletes service
+func (prom *PrometheusMonitor) DeleteEtcdService(service *corev1.Service) error {
+	err := prom.kubeCli.CoreV1().Services(service.Namespace).Delete(context.TODO(), service.Name, metav1.DeleteOptions{})
+	if err != nil {
+		klog.Errorf("delete etcd service, namespace is %s, name is %s,error is %v", service.Namespace, service.Name, err)
+	}
+	return err
 }
 
 // GetEtcdEndpoint gets endpoints
@@ -236,8 +246,20 @@ func (prom *PrometheusMonitor) UnpackEndPointSubsets(endpoint *corev1.Endpoints)
 	return addrs, nil
 }
 
+func (prom *PrometheusMonitor) IsMonitorEnabled(cluster *kstonev1alpha1.EtcdCluster) bool {
+	return util2.IsFeatureGateEnabled(cluster.ObjectMeta.Annotations, string(kstonev1alpha1.KStoneFeatureMonitor))
+}
+
 // Equal checks to Update ServiceMonitor & svc & ep, when label & memberIp change, update
 func (prom *PrometheusMonitor) Equal(cluster *kstonev1alpha1.EtcdCluster) bool {
+	if !prom.IsMonitorEnabled(cluster) {
+		_, err := prom.GetServiceMonitorTask(cluster.Namespace, cluster.Name)
+		if err == nil {
+			return true
+		}
+		_, err = prom.GetEtcdService(cluster.Namespace, cluster.Name)
+		return err == nil
+	}
 	var epAddrs []string
 	epLabels := make(map[string]string)
 
@@ -466,6 +488,22 @@ func (prom *PrometheusMonitor) initEtcdEndpoint(cluster *kstonev1alpha1.EtcdClus
 
 // SyncPrometheusMonitor sync prometheus monitor for etcdcluster
 func (prom *PrometheusMonitor) SyncPrometheusMonitor(cluster *kstonev1alpha1.EtcdCluster) error {
+	if !prom.IsMonitorEnabled(cluster) {
+		task, err := prom.GetServiceMonitorTask(cluster.Namespace, cluster.Name)
+		if err == nil {
+			if err = prom.DeleteServiceMonitor(task); err != nil {
+				return err
+			}
+		}
+		svc, err := prom.GetEtcdService(cluster.Namespace, cluster.Name)
+		if err == nil {
+			if err = prom.DeleteEtcdService(svc); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
 	taskName := cluster.Name
 
 	// 1 init service
