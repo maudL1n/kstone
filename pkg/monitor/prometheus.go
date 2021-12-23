@@ -76,7 +76,9 @@ func (prom *PrometheusMonitor) Init() error {
 func (prom *PrometheusMonitor) GetEtcdService(namespace, name string) (*corev1.Service, error) {
 	svr, err := prom.kubeCli.CoreV1().Services(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
-		klog.Errorf("get etcd service ,namespaces is %s,name is %s,error is %v", namespace, name, err)
+		if !apierrors.IsNotFound(err) {
+			klog.Errorf("get etcd service ,namespaces is %s,name is %s,error is %v", namespace, name, err)
+		}
 		return nil, err
 	}
 	return svr, err
@@ -145,7 +147,9 @@ func (prom *PrometheusMonitor) CreateEtcdEndpoint(ep *corev1.Endpoints) (*corev1
 func (prom *PrometheusMonitor) GetServiceMonitorTask(namespace, name string) (*promapiv1.ServiceMonitor, error) {
 	task, err := prom.promCli.ServiceMonitors(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
-		klog.Errorf("list service monitor,namespaces is %s,name is %s,error is %v", namespace, name, err)
+		if !apierrors.IsNotFound(err) {
+			klog.Errorf("list service monitor,namespaces is %s,name is %s,error is %v", namespace, name, err)
+		}
 		return nil, err
 	}
 	return task, err

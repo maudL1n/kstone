@@ -83,7 +83,9 @@ func (c *Server) GetEtcdCluster(namespace, name string) (*kstoneapiv1.EtcdCluste
 func (c *Server) GetEtcdInspection(namespace, name string) (*kstoneapiv1.EtcdInspection, error) {
 	inspectionTask, err := c.cli.KstoneV1alpha1().EtcdInspections(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
-		klog.Errorf("failed to get etcdinspection, err: %v, namespace is %s, name is %s", err, namespace, name)
+		if !apierrors.IsNotFound(err) {
+			klog.Errorf("failed to get etcdinspection, err: %v, namespace is %s, name is %s", err, namespace, name)
+		}
 		return inspectionTask, err
 	}
 	return inspectionTask, nil
